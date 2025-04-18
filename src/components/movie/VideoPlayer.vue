@@ -38,11 +38,7 @@
       @dblclick="skipBackwardHandler"
       class="skipBackward"
     />
-    <div
-      class="video_contorls_container"
-      ref="video_controls_container"
-      :class="isMobile ? (showControls && !isPaused ? 'hide' : 'show') : ''"
-    >
+    <div class="video_contorls_container" ref="video_controls_container">
       <div
         ref="timeline_container_ref"
         class="timeline-container"
@@ -54,12 +50,8 @@
           <div class="thumb-indicator"></div>
         </div>
       </div>
-      <div v-if="!isMobile" class="controls">
-        <button
-          ref="play_pause_btn"
-          @click="togglePlayByClickingBtn"
-          class="play-pause-btn"
-        >
+      <div class="controls">
+        <button ref="play_pause_btn" @click="togglePlayByClickingBtn">
           <svg class="play-icon" viewBox="0 0 24 24">
             <path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z" />
           </svg>
@@ -146,32 +138,8 @@
           </svg>
         </button>
       </div>
-      <div v-else class="controls">
-        <div class="duration-container">
-          <div class="current-time">{{ currentTimeOfVideo }}</div>
-          /
-          <div class="total-time">{{ totalVideoDuration }}</div>
-        </div>
-        <button @click="toggleFullScreen" class="full-screen-btn">
-          <svg class="open" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
-            />
-          </svg>
-          <svg class="close" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"
-            />
-          </svg>
-        </button>
-      </div>
     </div>
-    <div
-      class="video_status_container"
-      :class="isMobile ? (showControls && !isPaused ? 'hide' : 'show') : ''"
-    >
+    <div class="video_status_container" ref="video_status_container">
       <div v-if="isVideoLoading">
         <img src="/bars-scale-middle.svg" alt="" />
       </div>
@@ -187,6 +155,8 @@
         </button>
       </div>
     </div>
+    <ForwardIcon v-if="showForwardIcon" />
+    <RewindIcon v-if="showRewindIcon" />
   </div>
 </template>
 <script setup lang="ts">
@@ -194,14 +164,19 @@ import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import formatDuration from '@/utils/formatDuration'
 import { useIsMobile } from '@/composables/useIsMobile'
 import dashjs from 'dashjs'
+import ForwardIcon from './ForwardIcon.vue'
+import RewindIcon from './RewindIcon.vue'
 const { isMobile } = useIsMobile()
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let player: any = null
 const isPaused = ref(true)
 const isVideoLoading = ref(true)
+
+//refs
 const video_ref = ref<HTMLVideoElement | null>(null)
 const video_container_ref = ref<HTMLDivElement | null>(null)
 const video_controls_container = ref<HTMLDivElement | null>(null)
+const video_status_container = ref<HTMLDivElement | null>(null)
 const pause_play_icons = ref<HTMLDivElement | null>(null)
 const timeline_container_ref = ref<HTMLDivElement | null>(null)
 const buffered_ref = ref<HTMLDivElement | null>(null)
@@ -216,6 +191,10 @@ const currentTimeOfVideo = ref('0:00')
 const speed = ref('1x')
 const isScrubbing = ref(false)
 const showControls = ref(false)
+const showForwardIcon = ref(false)
+const showRewindIcon = ref(false)
+
+let hideControlsTimer: ReturnType<typeof setTimeout> | null = null
 const props = defineProps({
   id: {
     type: String,
@@ -224,14 +203,46 @@ const props = defineProps({
     type: String,
   },
 })
+// controls
+
+const showControlsFunction = () => {
+  if (video_controls_container.value && video_status_container.value) {
+    video_controls_container.value.style.opacity = '1'
+    video_status_container.value.style.opacity = '1'
+  }
+}
+
+const hideControlsFunction = () => {
+  if (video_controls_container.value && video_status_container.value) {
+    video_controls_container.value.style.opacity = '0'
+    video_status_container.value.style.opacity = '0'
+  }
+}
 
 const controlsHandler = () => {
   if (isMobile.value) {
     showControls.value = !showControls.value
+    if (video_controls_container.value && video_status_container.value) {
+      if (showControls.value) {
+        showControlsFunction()
+      } else {
+        hideControlsFunction()
+      }
+    }
   }
 }
 const handlePlayPause = (val: boolean) => {
   isPaused.value = val
+}
+
+const resetHideControlsTimer = () => {
+  clearTimeout(hideControlsTimer as number)
+  showControlsFunction()
+  if (isFullScreenMode.value) {
+    hideControlsTimer = setTimeout(() => {
+      hideControlsFunction()
+    }, 3000)
+  }
 }
 
 const onLoadMetadata = () => {
@@ -323,8 +334,10 @@ const miniplayerModeHandler = () => {
 const fullScreenChangeHandler = () => {
   if (document.fullscreenElement) {
     isFullScreenMode.value = true
+    resetHideControlsTimer()
   } else {
     isFullScreenMode.value = false
+    clearTimeout(hideControlsTimer as number)
   }
 }
 
@@ -425,6 +438,7 @@ const documentMouseupHandler = () => {
 }
 
 const documentMouseMoveHandler = (e: MouseEvent | TouchEvent) => {
+  resetHideControlsTimer()
   if (isScrubbing.value) {
     toggleScrubbing(e)
   }
@@ -432,13 +446,21 @@ const documentMouseMoveHandler = (e: MouseEvent | TouchEvent) => {
 
 const skipForwardHandler = () => {
   if (video_ref.value) {
-    video_ref.value.currentTime += 5
+    video_ref.value.currentTime += 10
+    showForwardIcon.value = true
+    setTimeout(() => {
+      showForwardIcon.value = false
+    }, 600)
   }
 }
 
 const skipBackwardHandler = () => {
   if (video_ref.value) {
-    video_ref.value.currentTime -= 5
+    video_ref.value.currentTime -= 10
+    showRewindIcon.value = true
+    setTimeout(() => {
+      showRewindIcon.value = false
+    }, 600)
   }
 }
 
@@ -508,6 +530,7 @@ onMounted(() => {
   document.addEventListener('fullscreenchange', fullScreenChangeHandler)
   document.addEventListener('mouseup', documentMouseupHandler)
   document.addEventListener('mousemove', documentMouseMoveHandler)
+  document.addEventListener('touchstart', documentMouseMoveHandler)
   video_ref.value?.addEventListener('enterpictureinpicture', () =>
     toggleMiniPlayerMode(true),
   )
@@ -520,6 +543,7 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('mouseup', documentMouseupHandler)
   document.removeEventListener('mousemove', documentMouseMoveHandler)
+  document.removeEventListener('touchstart', documentMouseMoveHandler)
 })
 </script>
 
@@ -551,7 +575,7 @@ video::-webkit-media-controls {
 .video-container.theater {
   max-height: 90vh;
 }
-/* 
+/*
 .video-container.full-screen {
   max-height: 100vh;
 } */
@@ -583,7 +607,7 @@ video::-webkit-media-controls {
   right: 0;
   color: white;
   z-index: 100;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 150ms ease-in-out;
 }
 
@@ -786,6 +810,7 @@ video::-webkit-media-controls {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  opacity: 1;
 }
 
 .pause_play_icons > button {
@@ -802,7 +827,7 @@ video::-webkit-media-controls {
 }
 
 .hide {
-  display: none;
+  opacity: 0;
 }
 
 .show {
