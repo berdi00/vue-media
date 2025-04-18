@@ -37,7 +37,7 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: v1.0.0 # Use a consistent tag like "latest" for releases
+          tag_name: v1.1.0 # Use a consistent tag like "latest" for releases
           release_name: Latest Release
           body: |
             Automated release from the main branch.
