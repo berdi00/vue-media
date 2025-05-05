@@ -5,6 +5,8 @@ const props = defineProps<{
   books: TBook[]
 }>()
 
+console.log(props.books, 'books')
+
 const musicClickHandler = (path: string) => {
   if (path) {
     window.open(`${import.meta.env.VITE_API_URL}${path}`, '_blank')

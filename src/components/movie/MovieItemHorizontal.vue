@@ -7,7 +7,6 @@ import { ref } from 'vue'
 import { useIsMobile } from '@/composables/useIsMobile'
 import { useRouter } from 'vue-router'
 import { truncate } from '@/utils/truncate'
-const env = import.meta.env.VITE_API_URL
 const loadingImage = ref(true)
 const router = useRouter()
 defineProps<{
@@ -29,7 +28,7 @@ const { isMobile } = useIsMobile()
       <span class="movie_duration">{{ formatDuration(movie.duration) }}</span>
       <img
         @load="onImageLoad"
-        :src="movie.image ? env + movie.image : '/placeholder.png'"
+        :src="movie.image ? movie.image : '/placeholder.png'"
         alt="movie image"
       />
       <!-- Skeleton  -->

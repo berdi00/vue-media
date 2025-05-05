@@ -127,8 +127,8 @@ import { getMovieCategories } from '@/services/movies'
 import Locales from '@/components/app/LocalesComponent.vue'
 import CategoryMenu from '@/components/app/CategoryMenu.vue'
 import type { TMovieCategory } from '@/types/movie'
-import { onMounted, onUnmounted, ref, watchEffect } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import Search from './SearchComponent.vue'
 import BottomMenu from '@/components/app/BottomMenu.vue'
 import { links } from '@/utils/links'
@@ -138,7 +138,7 @@ const { isMobile } = useIsMobile()
 const categories = ref<TMovieCategory[]>([])
 const menuIsOpened = ref(false)
 const menu = ref<HTMLDivElement>()
-const route = useRoute()
+// const route = useRoute()
 const handleClickOutside = (event: MouseEvent) => {
   if (
     menuIsOpened.value &&
@@ -149,18 +149,15 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-watchEffect(async () => {
-  console.log(route.path, 'path')
+onMounted(async () => {
+  document.addEventListener('click', handleClickOutside)
+
   try {
     const res = await getMovieCategories()
     categories.value = res.data
   } catch (err) {
     console.log(err)
   }
-})
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {

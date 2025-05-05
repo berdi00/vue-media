@@ -52,7 +52,8 @@ watch(
 }
 .movies_by_search {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  flex-grow: 1;
 }
 
 h1 {
@@ -65,20 +66,12 @@ h1 {
 }
 
 @media screen and (min-width: 1120px) and (max-width: 1680px) {
-  .movies_by_search {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-  }
   h1 {
     font-size: 2rem;
   }
 }
 
 @media screen and (min-width: 1681px) {
-  .movies_by_search {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 2rem;
-  }
   h1 {
     font-size: 2rem;
   }
