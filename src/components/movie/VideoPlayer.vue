@@ -499,6 +499,17 @@ watch(
         `${import.meta.env.VITE_API_URL}/movies/video/${newId}`,
         true,
       )
+
+      // ⛔ Catch 403 here
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      player.on(dashjs.MediaPlayer.events.ERROR, function (e: any) {
+        console.log(e, 'error in video')
+        if (e?.error.data.response.status === 403) {
+          player.reset()
+          window.location.href = '/login'
+        }
+      })
+
       // Set up event listener for playback metadata
       player.on(dashjs.MediaPlayer.events.PLAYBACK_METADATA_LOADED, () => {
         totalVideoDuration.value = formatDuration(player.duration())
